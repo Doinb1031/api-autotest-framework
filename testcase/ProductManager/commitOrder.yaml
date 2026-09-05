@@ -7,7 +7,7 @@
   testCase:
     - case_name: 提交订单
       json:
-        goods_id: ${get_extract_data(goodsId,0)}
+        goods_id: ''  # 运行时由 product_goods_id fixture 注入
         number: 2
         propertyChildIds: '2:9'
         inviter_id: '127839112'

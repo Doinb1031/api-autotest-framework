@@ -1,30 +1,32 @@
-# extract.yaml 落盘方案 → 内存业务上下文（真实工作模式）
+# ProductManager 套件：跨用例全局传参 → fixture 造数返回值
 
-## 背景与定性
-"提取变量供后续接口引用"是行业标准机制（JMeter/Postman/httprunner/Karate 全都有），不合适的只是**落盘存储**。真实框架中同一次运行内的变量全部在内存上下文里传递，随运行销毁。占位符语法 `${get_extract_data(...)}` 保持不变，YAML 用例零改动。
+## 目标
+单接口测试的"前置条件"改为 fixture 造数并返回值，用例之间零依赖；每个测试可单跑、可乱序、可并行。BusinessScenario.yml 链路（依赖是测试目标本身）保持不动。
 
 ## 改动清单
 
-### 1. 新增 `common/context.py` — 内存业务上下文
-- 模块级 dict + 线程锁，`set_vars`（后写覆盖先写）/ `get_var`（找不到记日志返回 None，语义与原文件方案一致）/ `clear` / `snapshot`（调试用）
+### 1. 新增 `testcase/ProductManager/conftest.py` — 造数 fixture
+- `product_goods_id`（module 级）：跑 getProductList.yaml，返回一个可用商品ID
+- `order_data(product_goods_id)`（module 级）：deepcopy commitOrder.yaml 的用例数据、注入商品ID、跑下单，返回 `{'orderNumber','userId'}`
+- fixture 内部读上下文取提取值属于实现细节，**对测试暴露的是返回值**
 
-### 2. 改造 `common/readyaml.py` — 读写后端换内存
-- `write_yaml_data` → 调 `context.set_vars`（不再 append 到文件，重复 key 问题自然消失）
-- `get_extract_yaml` → 调 `context.get_var`
-- `clear_yaml_data` → 调 `context.clear`
-- 删除文件 I/O 和 `FILE_PATH['EXTRACT']` 依赖
-- 对外方法签名不变，apiutil/apiutil_business/debugtalk 的调用零改动
+### 2. 改造 `test_productList.py`
+- `test_commit_order`：注入 `product_goods_id`（deepcopy 后改 testcase['json']['goods_id'] 再执行），不再依赖 getProductList 用例跑过
+- `test_order_pay`：`order_pay_precondition` 换成 `order_data`，注入 orderNumber/userId
+- **删除全部 `@pytest.mark.run(order=N)`**——造数自足后用例天然独立，不再需要顺序控制
 
-### 3. 清理残留
-- `conf/setting.py` 的 `FILE_PATH['EXTRACT']` 条目删除（grep 确认无其他引用后）
-- 磁盘上的 extract.yaml 遗留文件删除
-- conftest 里 clear 的注释措辞更新
-- `.gitignore` 里 extract.yaml 条目保留（防将来误生成）
+### 3. YAML 调整
+- `commitOrder.yaml`：`goods_id` 占位符改为空值 + 注释"运行时由 fixture 注入"
+- `orderPay.yaml`：`orderNumber`/`userId` 占位符同样处理
+
+### 4. 清理
+- `testcase/conftest.py` 删除 `order_pay_precondition` 补数 fixture（存在理由消失）及因此不再使用的 import
 
 ## 验证标准
-1. 全套 3 次运行 21 条全部通过（goodsIds 索引取值、orderNumber 链路传参、order_pay_precondition 均依赖此机制，绿即证明语义等价）
-2. 运行全程磁盘上不再生成 extract.yaml
-3. `${get_auth_token()}`（token 内存方案）与业务变量（内存上下文）两条内存链路互不干扰
+1. 全套 3 次运行通过（用例数不变，仍 21 条）
+2. **单独运行 test_productList.py**（不跑其他套件）也通过——证明用例自足
+3. 单独运行 test_order_pay 一条也通过（原来的痛点场景）
+4. 磁盘无 extract.yaml，全程无变量缺失报错
 
 ## 提交
 git commit 一次。

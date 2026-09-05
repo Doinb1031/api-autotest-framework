@@ -1,7 +1,6 @@
 import pytest
 import allure
-from common.readyaml import ReadYamlData, get_testcase_yaml
-from base.apiutil import RequestBase
+from common.readyaml import ReadYamlData
 from common.auth import AUTH
 from common.recordlog import logs
 from common.connection import ConnectMysql
@@ -53,20 +52,3 @@ def datadb_init():
     # allure.attach('将测试数据清空', 'fixture后置', allure.attachment_type.TEXT)
 
     pass
-
-
-@pytest.fixture(scope='module')
-def order_pay_precondition():
-    """
-    订单支付用例前置：单独调试时自动补齐“商品列表->提交订单”上游链，保证业务上下文中有 orderNumber/userId 可供引用。
-
-    全量运行时，链路中的提交订单步骤已先执行并写入业务上下文，此处检测到已有值则跳过，避免重复下单产生脏数据；
-    单独运行 orderPay 用例时，业务上下文初始为空，需要先把上游接口补齐后才能取到订单号。
-    :return:
-    """
-    read = ReadYamlData()
-    if read.get_extract_yaml('orderNumber') is None:
-        for yaml_path in ['./testcase/ProductManager/getProductList.yaml',
-                          './testcase/ProductManager/commitOrder.yaml']:
-            base_info, test_case = get_testcase_yaml(yaml_path)[0]
-            RequestBase().specification_yaml(base_info, test_case)

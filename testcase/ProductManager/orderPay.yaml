@@ -7,8 +7,8 @@
   testCase:
     - case_name: 订单支付
       json:
-        orderNumber: ${get_extract_data(orderNumber)}
-        userId: ${get_extract_data(userId)}
+        orderNumber: ''  # 运行时由 order_data fixture 注入
+        userId: ''  # 运行时由 order_data fixture 注入
         timeStamp: ${timestamp()}
       validation:
         - contains: { 'message': '订单支付成功' }
