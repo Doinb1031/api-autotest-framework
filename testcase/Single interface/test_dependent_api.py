@@ -27,19 +27,40 @@ def _auth_headers():
 
 @pytest.fixture(scope='module')
 def cart_with_goods():
-    """造数前置：把一件商品加入购物车，返回商品ID（供删除购物车用例消费）"""
+    """造数前置：把一件商品加入购物车，返回商品ID（供删除购物车用例消费）
+
+    teardown（yield 之后）：无论用例成败都清理购物车。清理幂等——
+    商品可能已被用例本身删除（如 test_del_cart_after_add），再次删除返回
+    "不存在"或成功均视为清理完成；清理失败仅记录到报告，不掩盖用例本身的结论。
+    """
     r = requests.post(f'{API_BASE}/coupApply/cms/shoppingJoinCart',
                       json={'goods_id': DOC_SAMPLE_GOODS_ID, 'count': 1, 'price': '1',
                             'timeStamp': int(time.time())},
                       headers=_auth_headers(), verify=False, timeout=60)
     body = r.json()
     assert r.status_code == 200 and body['error_code'] == '0000', f'造数失败，加购未成功：{body}'
-    return DOC_SAMPLE_GOODS_ID
+    yield DOC_SAMPLE_GOODS_ID
+    # teardown：尽力清理，幂等
+    try:
+        r = requests.post(f'{API_BASE}/coupApply/cms/delCart',
+                          data={'productId': DOC_SAMPLE_GOODS_ID, 'timeStamp': int(time.time())},
+                          headers=_auth_headers(), verify=False, timeout=60)
+        cleanup_body = r.json()
+        cleaned = r.status_code == 200 and cleanup_body.get('error_code') in ('0000', '4000')
+        if not cleaned:
+            allure.attach(f'响应: {r.text}', '购物车清理未确认成功', allure.attachment_type.TEXT)
+    except Exception as e:
+        allure.attach(f'清理异常: {e}', '购物车清理异常', allure.attachment_type.TEXT)
 
 
 @pytest.fixture(scope='module')
 def new_order():
-    """造数前置：从商品列表取一件商品提交订单，返回订单号（供订单状态查询用例消费）"""
+    """造数前置：从商品列表取一件商品提交订单，返回订单号（供订单状态查询用例消费）
+
+    清理限制：接口文档不存在"取消/删除订单"接口，造出的订单无法通过 API 清理，
+    依赖 mock 服务无状态兜底；指向真实服务时应改为：调用取消订单接口，
+    或使用一次性测试账号/数据库清理任务统一回收。
+    """
     r = requests.get(f'{API_BASE}/coupApply/cms/goodsList',
                      params={'msgType': 'getHandsetListOfCust', 'page': 1, 'size': 20},
                      headers=_auth_headers(), verify=False, timeout=60)
