@@ -97,6 +97,12 @@ class DebugTalk:
         from faker import Faker
         return Faker(locale='zh_CN').name()
 
+    def get_auth_token(self):
+        """获取内存中的登录 token（common/auth.py 的 AuthState），供把 token 作为请求参数的接口使用"""
+        from common.auth import AUTH
+        return AUTH.token or ''
+
+
     def timestamp_thirteen(self):
         """获取当前的时间戳，13位"""
         t = int(time.time()) * 1000

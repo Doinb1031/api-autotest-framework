@@ -12,7 +12,7 @@
         role_id: 123456789
         dates: '2023-12-31'
         phone: 13800000000
-        token: ${get_extract_data(token)}
+        token: ${get_auth_token()}
       validation:
         - contains: { 'status_code': 200 }
         - contains: { 'msg': '新增成功' }

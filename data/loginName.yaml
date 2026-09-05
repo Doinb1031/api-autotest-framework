@@ -12,5 +12,3 @@
       validation:
         - contains: { 'error_code': none }
         - eq: { 'msg': '登录成功' }
-      extract:
-        token: $.token

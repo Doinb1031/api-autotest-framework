@@ -2,6 +2,7 @@ import pytest
 import allure
 from common.readyaml import ReadYamlData, get_testcase_yaml
 from base.apiutil import RequestBase
+from common.auth import AUTH
 from common.recordlog import logs
 from common.connection import ConnectMysql
 
@@ -28,14 +29,14 @@ def start_test_and_end():
 @allure.story("登录")
 def system_login():
     # 清空 extract.yaml，避免上次运行的业务数据残留影响本次测试
-    # 之后登录会重新写入 token，保证每次运行都是干净起始状态
+    # 登录态（token/Cookie）由 auth 模块保存在内存，不落盘
     yfd.clear_yaml_data()
     try:
-        api_info = get_testcase_yaml('./data/loginName.yaml')
-        RequestBase().specification_yaml(api_info[0][0], api_info[0][1])
+        body = AUTH.login()
+        assert body.get('msg') == '登录成功', '登录接口返回异常：%s' % body
     except Exception as e:
         logs.error(f'登录接口出现异常，导致后续接口无法继续运行，请检查程序！，{e}')
-        exit()
+        pytest.fail('登录失败，后续接口无法执行：%s' % e)
 
 
 @pytest.fixture(scope='session', autouse=True)
