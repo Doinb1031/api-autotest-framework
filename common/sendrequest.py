@@ -49,7 +49,7 @@ class SendRequest:
         :param cookie: 可选，初始 cookie 字典，用于携带登录态等
         """
         self.cookie = cookie
-        # 创建 ReadYamlData 实例，用于业务数据的提取与持久化（extract.yaml）
+        # 创建 ReadYamlData 实例，用于业务数据提取（内存业务上下文）
         self.read = ReadYamlData()
         self.conf = OperationConfig()
 

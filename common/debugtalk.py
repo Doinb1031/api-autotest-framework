@@ -21,14 +21,14 @@ class DebugTalk:
 
     def get_extract_data(self, node_name, randoms=None) -> str:
         """
-        获取extract.yaml数据，首先判断randoms是否为数字类型，如果不是就获取下一个node节点的数据
-        :param node_name: extract.yaml文件中的key值
+        获取业务上下文中的提取变量数据，首先判断randoms是否为数字类型，如果不是就获取下一个node节点的数据
+        :param node_name: 业务上下文中的变量名
         :param randoms: int类型，0：随机读取；-1：读取全部，返回字符串形式；-2：读取全部，返回列表形式；其他根据列表索引取值，取第一个值为1，第二个为2，以此类推;
         :return:
         """
         """
-        获取extract.yaml数据，首先判断randoms是否为数字类型，如果不是就获取下一个node节点的数据
-        :param node_name: extract.yaml文件中的key值
+        获取业务上下文中的提取变量数据，首先判断randoms是否为数字类型，如果不是就获取下一个node节点的数据
+        :param node_name: 业务上下文中的变量名
         :param randoms: int类型，0：随机读取；-1：读取全部，返回字符串形式；-2：读取全部，返回列表形式；其他根据列表索引取值，取第一个值为1，第二个为2，以此类推;
         :return:
         """
@@ -58,7 +58,7 @@ class DebugTalk:
         return data
 
     def get_extract_order_data(self, data, randoms):
-        """获取extract.yaml数据，不为0、-1、-2，则按顺序读取文件key的数据"""
+        """获取业务上下文数据，不为0、-1、-2，则按顺序读取列表数据"""
         if randoms not in [0, -1, -2]:
             return data[randoms - 1]
 

@@ -41,7 +41,7 @@ class RequestBase(object):
     def __init__(self):
         # 初始化各个工具对象
         self.run = SendRequest()          # 发送 HTTP 请求的工具
-        self.read = ReadYamlData()        # 读写 yaml 文件的工具（extract.yaml）
+        self.read = ReadYamlData()        # 接口提取变量读写（内存业务上下文）
         self.conf = OperationConfig()     # 读取配置文件的工具
 
     def handler_yaml_list(self, data_dict):
@@ -235,7 +235,7 @@ class RequestBase(object):
 
         :param testcase_extract: testcase 文件 yaml 中的 extract 值（字典）
         :param response: 接口的实际返回值，str 类型
-        :return: 无返回值，提取结果直接写入 extract.yaml 文件
+        :return: 无返回值，提取结果直接写入内存业务上下文
         """
         # 正则模式列表，注意这里是 r'(\d+)'（正确版本）
         pattern_lst = ['(.+?)', '(.*?)', r'(\d+)', r'(\d*)']
@@ -276,7 +276,7 @@ class RequestBase(object):
 
         :param testcase_extract_list: yaml 文件中的 extract_list 信息（字典）
         :param response: 接口的实际返回值，str 类型
-        :return: 无返回值，提取结果直接写入 extract.yaml 文件
+        :return: 无返回值，提取结果直接写入内存业务上下文
         """
         try:
             for key, value in testcase_extract_list.items():

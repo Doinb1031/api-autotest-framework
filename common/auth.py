@@ -2,7 +2,7 @@
 进程级登录态管理中心。
 
 token、过期时间、Cookie 全部保存在内存中，由请求层（sendrequest）统一注入，
-不再写入 extract.yaml 落盘。extract.yaml 仅用于业务数据（订单号、商品ID等）的接口间传参。
+不再落盘。业务数据（订单号、商品ID等）由 common/context.py 的内存上下文传递。
 
 复用 data/loginName.yaml 的账号数据与 conf/config.ini 的 [api_envi]/[TOKEN] 配置，
 保证登录入口唯一：conftest 的 session 登录和 token 过期自动刷新都走 auth.login()。

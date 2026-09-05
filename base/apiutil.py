@@ -31,7 +31,7 @@ class RequestBase:
         # 初始化各个工具对象，后续接口处理流程中会用到
         self.run = SendRequest()          # 发送 HTTP 请求的工具
         self.conf = OperationConfig()      # 读取配置文件的工具
-        self.read = ReadYamlData()          # 读写 yaml 文件的工具（extract.yaml）
+        self.read = ReadYamlData()          # 接口提取变量读写（内存业务上下文）
         self.asserts = Assertions()        # 断言校验工具
 
     def replace_load(self, data):
@@ -192,7 +192,7 @@ class RequestBase:
 
     def extract_data(self, testcase_extarct, response):
         """
-        提取接口的返回值中的某个字段（提取单个值），写入 extract.yaml 供后续接口使用
+        提取接口的返回值中的某个字段（提取单个值），写入内存业务上下文 供后续接口使用
 
         这是接口自动化测试中"参数传递"的关键环节。
         比如:接口A返回了 {"token": "abc123"}，你想把这个 token 取出来传给接口B。
@@ -208,13 +208,13 @@ class RequestBase:
                            token: $.data.token
             意思是从响应的 JSON 结构中，沿着 data → token 的路径取值。
 
-        两种方式都会把提取结果以 {key: value} 的形式写入 extract.yaml。
+        两种方式都会把提取结果以 {key: value} 的形式写入内存业务上下文。
         后续 yaml 用例中就可以通过 ${get_extract_data(key)} 拿到这个值。
 
         :param testcase_extarct: 从 testCase 中 pop 出来的 extract 字典
                                  格式如：{"token": '"token":"(.*?)"'}
         :param response: 接口响应的原始文本（字符串），用于正则匹配
-        :return: 无返回值，提取结果直接写入 extract.yaml 文件
+        :return: 无返回值，提取结果直接写入内存业务上下文 文件
         """
         try:
             # 常见的正则匹配模式，用于判断 yaml 里写的是不是正则表达式
@@ -236,7 +236,7 @@ class RequestBase:
                         else:
                             # 否则按字符串类型存储
                             extract_data = {key: ext_lst.group(1)}
-                        # 写入 extract.yaml
+                        # 写入内存业务上下文
                         self.read.write_yaml_data(extract_data)
 
                 # ----- 方式二：jsonpath 提取 -----
@@ -256,7 +256,7 @@ class RequestBase:
 
     def extract_data_list(self, testcase_extract_list, response):
         """
-        提取接口返回值中的多个字段（提取结果以列表形式存储），写入 extract.yaml
+        提取接口返回值中的多个字段（提取结果以列表形式存储），写入内存业务上下文
 
         这个方法跟 extract_data 的区别：
           extract_data（单值提取）：
@@ -273,7 +273,7 @@ class RequestBase:
           如果想提取所有 id，用 extract_list：
             yaml 里写：  extract_list:
                            goods_id_list: $.goodsList[*].id
-          提取结果是一个列表 [1, 2, 3]，写入 extract.yaml
+          提取结果是一个列表 [1, 2, 3]，写入内存业务上下文
 
           后续 yaml 可以通过 ${get_extract_data(goods_id_list, 0)} 随机取一个 id，
           或者 ${get_extract_data(goods_id_list, -2)} 取全部。
@@ -281,7 +281,7 @@ class RequestBase:
         :param testcase_extract_list: 从 testCase 中 pop 出来的 extract_list 字典
                                        格式如：{"goodsId": "$.goodsList[*].goodsId"}
         :param response: 接口响应的原始文本（字符串），用于正则匹配
-        :return: 无返回值，提取结果直接写入 extract.yaml 文件
+        :return: 无返回值，提取结果直接写入内存业务上下文 文件
         """
         try:
             for key, value in testcase_extract_list.items():

@@ -28,7 +28,6 @@ FILE_PATH = {
     'YAML': os.path.join(DIR_BASE),
     'TEMP': os.path.join(DIR_BASE, 'report/temp'),
     'TMR': os.path.join(DIR_BASE, 'report/tmreport'),
-    'EXTRACT': os.path.join(DIR_BASE, 'extract.yaml'),
     'XML': os.path.join(DIR_BASE, 'data/sql'),
     'RESULTXML': os.path.join(DIR_BASE, 'report'),
     'EXCEL': os.path.join(DIR_BASE, 'data', '测试数据.xls')

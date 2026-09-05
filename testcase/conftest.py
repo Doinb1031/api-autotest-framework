@@ -28,7 +28,7 @@ def start_test_and_end():
 @pytest.fixture(scope='session', autouse=True)
 @allure.story("登录")
 def system_login():
-    # 清空 extract.yaml，避免上次运行的业务数据残留影响本次测试
+    # 清空内存业务上下文，避免上次运行的业务数据残留影响本次测试
     # 登录态（token/Cookie）由 auth 模块保存在内存，不落盘
     yfd.clear_yaml_data()
     try:
@@ -58,10 +58,10 @@ def datadb_init():
 @pytest.fixture(scope='module')
 def order_pay_precondition():
     """
-    订单支付用例前置：单独调试时自动补齐“商品列表->提交订单”上游链，保证 extract.yaml 中有 orderNumber/userId 可供引用。
+    订单支付用例前置：单独调试时自动补齐“商品列表->提交订单”上游链，保证业务上下文中有 orderNumber/userId 可供引用。
 
-    全量运行时，order=3 的提交订单用例已先执行并写入 extract.yaml，此处检测到已有值则跳过，避免重复下单产生脏数据；
-    单独运行 orderPay 用例时，extract.yaml 初始只有登录写入的 token，需要先把上游接口补齐后才能取到订单号。
+    全量运行时，链路中的提交订单步骤已先执行并写入业务上下文，此处检测到已有值则跳过，避免重复下单产生脏数据；
+    单独运行 orderPay 用例时，业务上下文初始为空，需要先把上游接口补齐后才能取到订单号。
     :return:
     """
     read = ReadYamlData()

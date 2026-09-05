@@ -1,13 +1,10 @@
 import yaml
 import traceback
-import os
-
 
 from yaml.scanner import ScannerError
 
+from pythonproject.common import context
 from pythonproject.common.recordlog import logs
-from pythonproject.conf.operationConfig import OperationConfig
-from pythonproject.conf.setting import FILE_PATH
 
 
 def get_testcase_yaml(file):
@@ -36,11 +33,11 @@ class ReadYamlData:
     """YAML 测试数据读写类
 
     用于读取 YAML 格式的接口测试用例文件，
-    以及管理 extract.yaml（接口关联数据的提取与存储）。
+    以及管理接口关联提取变量（存储于 common/context.py 的内存业务上下文，不再落盘）。
     - get_yaml_data: 解析 YAML 测试用例文件
-    - write_yaml_data: 向 extract.yaml 写入接口提取值
-    - get_extract_yaml: 读取 extract.yaml 中的提取变量
-    - clear_yaml_data: 清空 extract.yaml
+    - write_yaml_data: 向内存上下文写入接口提取值
+    - get_extract_yaml: 读取内存上下文中的提取变量
+    - clear_yaml_data: 清空内存上下文
     - get_method / get_request_parame: 快捷获取请求方法和参数
     """
 
@@ -49,7 +46,6 @@ class ReadYamlData:
             self.yaml_file = yaml_file
         else:
             pass
-        self.conf = OperationConfig()
         self.yaml_data = None
 
     def get_yaml_data(self):
@@ -68,60 +64,26 @@ class ReadYamlData:
 
     def write_yaml_data(self, value):
         """
-        写入数据需为dict，allow_unicode=True表示写入中文，sort_keys按顺序写入
-        写入YAML文件数据,主要用于接口关联
-        :param value: 写入数据，必须用dict
-        :return:
-        """
+        写入接口提取值到内存业务上下文，用于接口间参数传递。
+        同 key 后写覆盖先写。
 
-        file = None
-        file_path = FILE_PATH['EXTRACT']
-        if not os.path.exists(file_path):
-            os.system(file_path)
-        try:
-            file = open(file_path, 'a', encoding='utf-8')
-            if isinstance(value, dict):
-                write_data = yaml.dump(value, allow_unicode=True, sort_keys=False)
-                file.write(write_data)
-            else:
-                logs.info('写入[extract.yaml]的数据必须为dict格式')
-        except Exception:
-            logs.error(str(traceback.format_exc()))
-        finally:
-            file.close()
+        :param value: 写入数据，必须用 dict
+        """
+        context.set_vars(value)
 
     def clear_yaml_data(self):
-        """
-        清空extract.yaml文件数据
-        :param filename: yaml文件名
-        :return:
-        """
-        with open(FILE_PATH['EXTRACT'], 'w') as f:
-            f.truncate()
+        """清空内存业务上下文（session 前置调用，保证每次运行业务数据从零开始）"""
+        context.clear()
 
     def get_extract_yaml(self, node_name, second_node_name=None):
         """
-        用于读取接口提取的变量值
+        用于读取接口提取的变量值（来自内存业务上下文）
+
         :param node_name: 一级节点名，即变量名
         :param second_node_name: 二级节点名，可选，用于获取嵌套变量值
-        :return: 返回变量值，或嵌套变量值的dict
+        :return: 返回变量值，或嵌套变量值的dict；变量不存在时返回 None
         """
-        if os.path.exists(FILE_PATH['EXTRACT']):
-            pass
-        else:
-            logs.error('extract.yaml不存在')
-            file = open(FILE_PATH['EXTRACT'], 'w')
-            file.close()
-            logs.info('extract.yaml创建成功！')
-        try:
-            with open(FILE_PATH['EXTRACT'], 'r', encoding='utf-8') as rf:
-                ext_data = yaml.safe_load(rf)
-                if second_node_name is None:
-                    return ext_data[node_name]
-                else:
-                    return ext_data[node_name][second_node_name]
-        except Exception as e:
-            logs.error(f"【extract.yaml】没有找到：{node_name},--%s" % e)
+        return context.get_var(node_name, second_node_name)
 
     def get_testCase_baseInfo(self, case_info):
         """
