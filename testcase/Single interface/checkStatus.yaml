@@ -1,0 +1,67 @@
+- baseInfo:
+    api_name: 校验订单状态
+    url: /coupApply/cms/checkOrderStatus
+    method: post
+    header:
+      Content-Type: application/json;charset=UTF-8
+  testCase:
+    - case_name: 查询不存在的订单号
+      json:
+        orderNumber: '999999999999'
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '4000', 'error': '订单编号不存在' }
+    - case_name: 订单号为空字符串
+      json:
+        orderNumber: ''
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '4000', 'error': '订单编号不存在' }
+- baseInfo:
+    api_name: 校验商品物流状态
+    url: /coupApply/cms/checkLogisticsStatus
+    method: post
+    header:
+      Content-Type: application/json;charset=UTF-8
+  testCase:
+    - case_name: 查询不存在的订单号
+      json:
+        orderNumber: '999999999999'
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '4000', 'error': '订单编号不存在' }
+- baseInfo:
+    api_name: 校验商品库存
+    url: /coupApply/cms/shoppingInventory
+    method: post
+    header:
+      Content-Type: application/json;charset=UTF-8
+  testCase:
+    - case_name: 库存充足·购买1件
+      json:
+        goodsId: '18382788819'
+        count: '1'
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'status': '0', 'error_code': '0000' }
+    - case_name: 库存不足·购买6件
+      json:
+        goodsId: '18382788819'
+        count: '6'
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'status': '1', 'error_code': '0000' }
+        - contains: { 'error': '商品库存不足' }
+    - case_name: 商品id为空·参数错误
+      json:
+        goodsId: ''
+        count: '1'
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '9001', 'msg': '参数错误' }

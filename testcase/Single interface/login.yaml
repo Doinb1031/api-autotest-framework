@@ -17,3 +17,16 @@
         passwd: admin123
       validation:
         - contains: { 'msg': '登录失败' }
+    - case_name: 密码缺失·登录失败
+      data:
+        user_name: test01
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'msg': '参数错误', 'msg_code': -1 }
+    - case_name: 用户名密码全空·登录失败
+      data:
+        user_name: ''
+        passwd: ''
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'msg': '参数错误', 'msg_code': -1 }
