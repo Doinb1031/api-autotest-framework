@@ -1,0 +1,16 @@
+# 虚拟环境
+venv/
+venv_backup_20260904/
+
+# Python 生成物
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# IDE
+.idea/
+
+# 运行时产物
+logs/
+report/
+extract.yaml

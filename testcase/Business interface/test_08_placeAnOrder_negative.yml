@@ -1,0 +1,32 @@
+- baseInfo:
+    api_name: 提交订单
+    url: /coupApply/cms/placeAnOrder
+    method: post
+    header:
+      Content-Type: application/json;charset=UTF-8
+  testCase:
+    - case_name: 缺少必填参数number
+      json:
+        goods_id: ${get_extract_data(goodsIds,1)}
+        propertyChildIds: "2:9"
+        inviter_id: 127839112
+        price: "128"
+        freight_insurance: "0.00"
+        discount_code: "002399"
+        consignee_info:
+          { "name": "张三","phone": 13800000000,"address": "北京市海淀区西三环北路74号院4栋3单元1008" }
+      validation:
+        - contains: { 'msg': '提交订单失败' }
+    - case_name: 购买数量为0
+      json:
+        goods_id: ${get_extract_data(goodsIds,1)}
+        number: 0
+        propertyChildIds: "2:9"
+        inviter_id: 127839112
+        price: "128"
+        freight_insurance: "0.00"
+        discount_code: "002399"
+        consignee_info:
+          { "name": "张三","phone": 13800000000,"address": "北京市海淀区西三环北路74号院4栋3单元1008" }
+      validation:
+        - contains: { 'msg': '提交订单失败' }

@@ -1,0 +1,52 @@
+<!--
+    Allure 报告环境信息配置文件
+    作用：在 allure 报告首页的 Environment 区域展示本次测试的环境信息
+    生效方式：run.py 运行时将此文件复制到 ./report/temp 目录，allure 自动读取展示
+-->
+<environment>
+    <!-- 测试浏览器 -->
+    <parameter>
+        <key>Browser</key>
+        <value>Chrome</value>
+    </parameter>
+    <!-- 操作系统 -->
+    <parameter>
+        <key>system</key>
+        <value>Window10</value>
+    </parameter>
+    <!-- Python 版本 -->
+    <parameter>
+        <key>python version</key>
+        <value>3.8.2</value>
+    </parameter>
+    <!-- Allure 报告版本 -->
+    <parameter>
+        <key>allure version</key>
+        <value>allure-2.13.8</value>
+    </parameter>
+    <!-- 被测系统的地址 -->
+    <parameter>
+        <key>BaseUrl</key>
+        <value>https://www.baidu.com</value>
+    </parameter>
+    <!-- 测试环境（开发/测试/生产） -->
+    <parameter>
+        <key>environment</key>
+        <value>生产环境</value>
+    </parameter>
+    <!-- 项目名称 -->
+    <parameter>
+        <key>Project</key>
+        <value>xxx项目接口自动化测试</value>
+    </parameter>
+    <!-- 测试报告收件人邮箱 -->
+    <parameter>
+        <key>email</key>
+        <value>123456@163.com;7892223@qq.com;12333@163.com</value>
+    </parameter>
+    <!-- 作者 -->
+    <parameter>
+        <key>author</key>
+        <value>张三</value>
+    </parameter>
+</environment>

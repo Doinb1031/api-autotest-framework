@@ -1,0 +1,19 @@
+- baseInfo:
+    api_name: 用户登录
+    url: /dar/user/login
+    method: post
+    header:
+      Content-Type: application/x-www-form-urlencoded;charset=UTF-8
+  testCase:
+    - case_name: 错误密码登录
+      data:
+        user_name: test01
+        passwd: wrongpass123
+      validation:
+        - contains: { 'msg': '登录失败' }
+    - case_name: 不存在的用户名登录
+      data:
+        user_name: nobody_user_2024
+        passwd: admin123
+      validation:
+        - contains: { 'msg': '登录失败' }

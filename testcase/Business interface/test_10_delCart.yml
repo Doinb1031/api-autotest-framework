@@ -1,0 +1,19 @@
+- baseInfo:
+    api_name: 删除购物车商品
+    url: /coupApply/cms/delCart
+    method: post
+    header:
+      Content-Type: application/x-www-form-urlencoded;charset=UTF-8
+  testCase:
+    - case_name: 删除购物车商品
+      data:
+        productId: ${get_extract_data(goodsIds,1)}
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'error_code': '0000' }
+    - case_name: 删除不存在的商品
+      data:
+        productId: "999999999999"
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'error_code': '0000' }

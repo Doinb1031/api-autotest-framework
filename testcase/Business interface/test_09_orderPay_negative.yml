@@ -1,0 +1,14 @@
+- baseInfo:
+    api_name: 订单支付
+    url: /coupApply/cms/orderPay
+    method: post
+    header:
+      Content-Type: application/json;charset=UTF-8
+  testCase:
+    - case_name: 支付不存在的订单号
+      json:
+        orderNumber: "123456789012345678901"
+        userId: "123456789012345678"
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'msg': '订单支付失败' }

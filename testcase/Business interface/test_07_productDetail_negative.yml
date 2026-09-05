@@ -1,0 +1,21 @@
+- baseInfo:
+    api_name: 商品详情
+    url: /coupApply/cms/productDetail
+    method: post
+    header:
+      Content-Type: application/json;charset=UTF-8
+  testCase:
+    - case_name: 查询不存在的商品id
+      json:
+        pro_id: "999999999999"
+        page: 1
+        size: 20
+      validation:
+        - contains: { 'msg': '失败' }
+    - case_name: 商品id为空字符串
+      json:
+        pro_id: ""
+        page: 1
+        size: 20
+      validation:
+        - contains: { 'msg': '失败' }
