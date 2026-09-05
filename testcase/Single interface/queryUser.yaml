@@ -9,5 +9,5 @@
       data:
         user_id: 123839387391912
       validation:
-        - contains: { 'msg': '查询成功' }
-        - eq: { 'msg_code': 200 }
+        - contains: { 'status_code': 200 }
+        - eq: { 'msg': '查询成功!', 'msg_code': 200 }

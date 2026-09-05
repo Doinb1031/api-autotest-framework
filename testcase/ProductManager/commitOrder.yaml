@@ -16,6 +16,7 @@
         discount_code: '002399'
         consignee_info: {"name": "张三","phone": 13800000000,"address": "北京市海淀区西三环北路74号院4栋3单元1008"}
       validation:
+        - contains: { 'status_code': 200 }
         - eq: { 'message': '提交订单成功' }
         - eq: {'error_code':'0000'}
       extract:

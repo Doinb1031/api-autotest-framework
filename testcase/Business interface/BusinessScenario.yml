@@ -14,6 +14,7 @@
       validation:
         - contains: { 'status_code': 200 }
         - eq: { 'error_code': '0000' }
+        - exists: { '$.goodsList[0]': true }
       extract_list:
         goodsIds: $.goodsList[*].goodsId
         goodsPrices: $.goodsList[*].unit_price
@@ -29,6 +30,7 @@
         pro_id: ${get_extract_data(goodsIds,1)}
         page: 1
         size: 20
+      # mock 详情接口返回随机商品ID，无法做内容一致性断言，此为被测服务能力上限
       validation:
         - contains: { 'status_code': 200 }
         - eq: { 'error_code': '0000' }

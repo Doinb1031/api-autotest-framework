@@ -153,9 +153,9 @@ class RequestBase(object):
                 # 断言结果解析替换：先替换 ${} 占位符
                 val = self.replace_load(tc.get('validation'))
                 tc['validation'] = val
-                # 用 eval 把字符串形式的列表转换为真正的 list 类型
-                # 注意：这里用 eval 有安全风险，建议替换成 json.loads 或 ast.literal_eval
-                validation = eval(tc.pop('validation'))
+                # replace_load 返回的是 JSON 字符串，用 json.loads 还原为 list
+                # （原先用 eval 解析，无法处理 JSON 布尔值 true/false 且存在代码注入风险）
+                validation = json.loads(tc.pop('validation'))
                 # 把 validation 格式化成更易读的字符串记录到 allure 报告
                 allure_validation = str([str(list(i.values())) for i in validation])
                 allure.attach(allure_validation, "预期结果", allure.attachment_type.TEXT)

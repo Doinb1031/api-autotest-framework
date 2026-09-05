@@ -11,7 +11,9 @@
         page: 1
         size: 20
       validation:
-        - contains: { 'error_code': '0000' }
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '0000' }
+        - exists: { '$.goodsList[0]': true }
       extract_list:
 #        token: '"token": "(.*?)"'
         goodsId: $.goodsList[*].goodsId

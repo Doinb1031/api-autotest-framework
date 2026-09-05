@@ -11,10 +11,11 @@ class Assertions:
     """
     接口断言模式，支持
     1)响应文本字符串包含模式断言 contains
-    2)响应结果相等断言 eq   
+    2)响应结果相等断言 eq
     3)响应结果不相等断言 ne
     4)响应结果任意值断言 rv
     5)数据库断言 db
+    6)字段存在性断言 exists（jsonpath 表达式能否取到值）
 
     所有断言方法均返回 flag 标识：0 表示通过，非 0 表示失败。
     由 assert_result() 统一调度，根据 YAML 文件中 validation 的关键字段选择对应断言方式。
@@ -46,7 +47,7 @@ class Assertions:
                 # 将所有匹配值统一转为字符串后拼接，做子串包含判断
                 resp_list = ''.join(str(item) for item in resp_list)
                 if resp_list:
-                    # 'NONE' 字符串特殊处理为 None
+                    # 'NONE' 字符串特殊处理为 'None'（与 str(None) 拼接结果匹配，用于断言字段为空）
                     assert_value = 'None' if assert_value.upper() == 'NONE' else assert_value
                     # 检查预期值是否包含在实际结果中
                     if assert_value in resp_list:
@@ -56,6 +57,35 @@ class Assertions:
                         allure.attach(f"预期结果：{assert_value}\n实际结果：{resp_list}", '响应文本断言结果：失败',
                                       attachment_type=allure.attachment_type.TEXT)
                         logs.error("响应文本断言失败：预期结果为【%s】,实际结果为【%s】" % (assert_value, resp_list))
+                else:
+                    # 字段在响应中不存在时本断言未生效（空过），必须告警提示用例作者排查
+                    logs.warning("contains断言：响应中未找到字段【%s】，本断言未生效（空过），请确认断言是否写错字段名" % assert_key)
+        return flag
+
+    def exists_assert(self, value, response):
+        """
+        字段存在性断言模式：用 jsonpath 表达式判断响应中能否取到值。
+
+        用于守住"列表非空""关键字段必须在"这类约束，弥补 contains 在字段缺失时
+        静默通过的空过缺陷（如 goodsList 为空时 goodsId 提取空列表）。
+
+        :param value: 预期结果，dict 格式，key 为 jsonpath 表达式，value 为布尔，
+                      如 {'$.goodsList[0]': True} 表示取得到值、{'$.error.field': False} 表示取不到
+        :param response: 接口实际响应结果(dict)
+        :return: int,0 表示通过，非 0 表示失败
+        """
+        flag = 0
+        for expr, expected in value.items():
+            found = jsonpath.jsonpath(response, expr)
+            actual = bool(found)
+            if actual != bool(expected):
+                flag = flag + 1
+                allure.attach(f"jsonpath表达式：{expr}\n预期：{'存在' if expected else '不存在'}\n实际：{'存在' if actual else '不存在'}",
+                              '存在性断言结果：失败', attachment_type=allure.attachment_type.TEXT)
+                logs.error("存在性断言失败：表达式【%s】预期%s，实际%s" % (
+                    expr, '存在' if expected else '不存在', '存在' if actual else '不存在'))
+            else:
+                logs.info("存在性断言成功：表达式【%s】，预期%s与实际一致" % (expr, '存在' if expected else '不存在'))
         return flag
 
     def equal_assert(self, expected_results, actual_results, status_code=None):
@@ -229,6 +259,10 @@ class Assertions:
                     elif key == 'db':
                         # 数据库断言
                         flag = self.assert_mysql_data(value)
+                        all_flag = all_flag + flag
+                    elif key == 'exists':
+                        # 字段存在性断言（jsonpath 表达式）
+                        flag = self.exists_assert(value, response)
                         all_flag = all_flag + flag
                     else:
                         logs.error("不支持此种断言方式")

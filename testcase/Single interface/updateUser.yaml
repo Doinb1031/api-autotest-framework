@@ -14,4 +14,4 @@
         phone: 13800000000
       validation:
         - contains: { 'status_code': 200 }
-        - contains: { 'msg': '更新成功' }
+        - eq: { 'msg': '更新成功', 'msg_code': 200 }
