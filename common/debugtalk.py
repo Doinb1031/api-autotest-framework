@@ -88,6 +88,15 @@ class DebugTalk:
         t = int(time.time())
         return t
 
+    def random_phone(self):
+        """生成随机11位手机号，用于测试数据唯一化，避免每次运行使用相同收货人信息"""
+        return '1' + random.choice('3578') + ''.join(random.choices('0123456789', k=9))
+
+    def random_name(self):
+        """生成随机中文收货人姓名，用于测试数据唯一化"""
+        from faker import Faker
+        return Faker(locale='zh_CN').name()
+
     def timestamp_thirteen(self):
         """获取当前的时间戳，13位"""
         t = int(time.time()) * 1000

@@ -13,15 +13,18 @@
         page: 1
         size: 20
       validation:
-        - contains: { 'error_code': '0000' }
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '0000' }
       extract_list:
         goodsIds: $.goodsList[*].goodsId
+        goodsPrices: $.goodsList[*].unit_price
 - baseInfo:
     api_name: 商品详情
     url: /coupApply/cms/productDetail
     method: post
     header:
       Content-Type: application/json;charset=UTF-8
+      token: ${get_extract_data(token)}
   testCase:
     - case_name: 获取商品详情
       json:
@@ -29,6 +32,7 @@
         page: 1
         size: 20
       validation:
+        - contains: { 'status_code': 200 }
         - eq: { 'error_code': '0000' }
 - baseInfo:
     api_name: 添加购物车
@@ -42,7 +46,7 @@
       json:
         goods_id: ${get_extract_data(goodsIds,1)}
         count: 2
-        price: "128"
+        price: ${get_extract_data(goodsPrices,1)}
         timeStamp: ${timestamp()}
       validation:
         - contains: { 'status_code': 200 }
@@ -54,6 +58,7 @@
     method: post
     header:
       Content-Type: application/json;charset=UTF-8
+      token: ${get_extract_data(token)}
   testCase:
     - case_name: 详情页面选择规格，提交订单
       json:
@@ -61,13 +66,14 @@
         number: 2
         propertyChildIds: "2:9"
         inviter_id: 127839112
-        price: "128"
+        price: ${get_extract_data(goodsPrices,1)}
         freight_insurance: "0.00"
         discount_code: "002399"
         consignee_info:
-          { "name": "张三","phone": 13800000000,"address": "北京市海淀区西三环北路74号院4栋3单元1008" }
+          { "name": "${random_name()}","phone": "${random_phone()}","address": "北京市海淀区西三环北路74号院4栋3单元1008" }
       validation:
-        - eq: { 'message': '提交订单成功' }
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '0000', 'message': '提交订单成功' }
       extract:
         orderNumber: $.orderNumber
         userId: $.userId
@@ -77,6 +83,7 @@
     method: post
     header:
       Content-Type: application/json;charset=UTF-8
+      token: ${get_extract_data(token)}
   testCase:
     - case_name: 订单支付
       json:
@@ -84,17 +91,35 @@
         userId: ${get_extract_data(userId)}
         timeStamp: ${timestamp()}
       validation:
-        - eq: { 'message': '订单支付成功' }
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '0000', 'message': '订单支付成功' }
 - baseInfo:
     api_name: 校验订单状态
     url: /coupApply/cms/checkOrderStatus
     method: post
     header:
       Content-Type: application/json;charset=UTF-8
+      token: ${get_extract_data(token)}
   testCase:
     - case_name: 校验商品订单状态
       json:
         orderNumber: ${get_extract_data(orderNumber)}
         timeStamp: ${timestamp()}
       validation:
+        - contains: { 'status_code': 200 }
         - eq: { 'status': '0' }
+- baseInfo:
+    api_name: 删除购物车商品
+    url: /coupApply/cms/delCart
+    method: post
+    header:
+      Content-Type: application/x-www-form-urlencoded
+      token: ${get_extract_data(token)}
+  testCase:
+    - case_name: 清理测试数据，删除购物车中商品
+      data:
+        productId: ${get_extract_data(goodsIds,1)}
+        timeStamp: ${timestamp()}
+      validation:
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '0000', 'message': 'success' }
