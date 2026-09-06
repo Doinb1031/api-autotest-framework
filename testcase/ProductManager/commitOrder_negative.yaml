@@ -1,13 +1,13 @@
 - baseInfo:
-    api_name: 提交订单
+    api_name: 提交订单负向
     url: /coupApply/cms/placeAnOrder
     method: post
     header:
       Content-Type: application/json;charset=UTF-8
   testCase:
-    - case_name: 缺少必填参数number
+    - case_name: 负向提交订单·缺少必填参数number
+      # goods_id 由 fixture 造数注入（见 test_productList.py），本用例不依赖其他用例
       json:
-        goods_id: ${get_extract_data(goodsIds,1)}
         propertyChildIds: "2:9"
         inviter_id: 127839112
         price: "128"
@@ -16,10 +16,11 @@
         consignee_info:
           { "name": "张三","phone": 13800000000,"address": "北京市海淀区西三环北路74号院4栋3单元1008" }
       validation:
-        - contains: { 'msg': '提交订单失败' }
-    - case_name: 购买数量为0
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '9001', 'error': '参数错误或必填参数为空' }
+    - case_name: 负向提交订单·购买数量为0
       json:
-        goods_id: ${get_extract_data(goodsIds,1)}
+        goods_id: PLACEHOLDER
         number: 0
         propertyChildIds: "2:9"
         inviter_id: 127839112
@@ -29,4 +30,5 @@
         consignee_info:
           { "name": "张三","phone": 13800000000,"address": "北京市海淀区西三环北路74号院4栋3单元1008" }
       validation:
-        - contains: { 'msg': '提交订单失败' }
+        - contains: { 'status_code': 200 }
+        - eq: { 'error_code': '9001', 'error': '参数错误或必填参数为空' }

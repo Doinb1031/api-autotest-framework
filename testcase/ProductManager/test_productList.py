@@ -42,6 +42,15 @@ class TestLogin:
         allure.dynamic.title(testcase['case_name'])
         RequestBase().specification_yaml(base_info, testcase)
 
+    @allure.story(next(c_id) + "提交订单负向")
+    @pytest.mark.parametrize('base_info,testcase', get_testcase_yaml('./testcase/ProductManager/commitOrder_negative.yaml'))
+    def test_commit_order_negative(self, base_info, testcase, product_goods_id):
+        # 负向用例同样由 fixture 注入真实商品ID，保证"参数缺失"是被测变量而不是数据缺陷
+        testcase = copy.deepcopy(testcase)
+        testcase['json']['goods_id'] = product_goods_id
+        allure.dynamic.title(testcase['case_name'])
+        RequestBase().specification_yaml(base_info, testcase)
+
     @allure.story(next(c_id) + "订单支付")
     @pytest.mark.parametrize('base_info,testcase', get_testcase_yaml('./testcase/ProductManager/orderPay.yaml'))
     def test_order_pay(self, base_info, testcase, order_data):
