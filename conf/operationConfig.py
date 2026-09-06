@@ -1,3 +1,4 @@
+import os
 import sys
 import traceback
 
@@ -15,6 +16,11 @@ class OperationConfig:
 
     本类用于统一读取和写入项目中的 *.ini 配置文件（默认读取 setting.FILE_PATH['CONFIG']）。
     框架中的数据库连接、报告类型、邮件、SSH 等环境配置均通过此类获取。
+
+    多环境约定（详见 get_api_env）：
+    - [api_envi] 是本地默认环境（也是回落基线）；
+    - 其他环境写成 [api_envi:环境名]，只写与默认环境有差异的配置项；
+    - 当前环境由环境变量 TEST_ENV 或 pytest --env 决定，默认 local。
     """
 
     def __init__(self, filepath=None):
@@ -40,9 +46,6 @@ class OperationConfig:
             # 获取当前异常信息对象并打印异常堆栈
             exc_type, exc_value, exc_obj = sys.exc_info()
             logs.error(str(traceback.print_exc(exc_obj)))
-
-        # 初始化时自动读取 REPORT_TYPE 配置项，保存到 self.type，方便外部直接访问
-        self.type = self.get_report_type('type')
 
     def get_item_value(self, section_name):
         """
@@ -124,3 +127,33 @@ class OperationConfig:
     def get_section_sqlite(self, option):
         """读取 [SQLITE] 节下的指定配置项（db 断言用的 SQLite 库文件路径）。"""
         return self.get_section_for_data("SQLITE", option)
+
+    def get_api_env(self, option):
+        """
+        读取"当前环境"的接口环境配置项（多环境支持的核心方法）。
+
+        环境判定规则（TEST_ENV 环境变量，由 pytest --env 参数桥接写入，见根 conftest.py）：
+        - TEST_ENV=test  → 读 [api_envi:test] 段；
+        - 未设置/为 local → 读 [api_envi] 段（本地默认环境）。
+
+        回落机制：环境专属段里只写与默认环境有差异的配置项；某个 option 在
+        环境专属段里不存在时，回落到 [api_envi] 基线段取值——避免每个环境
+        都把整份配置抄一遍。段本身不存在也回落基线，并打 info 日志留痕，
+        让"环境没配对、实际在跑默认环境"这类情况在日志里可发现。
+
+        :param option: 配置项名，如 'host'
+        :return: 当前环境下生效的配置值（字符串）
+        """
+        env = os.environ.get('TEST_ENV', 'local').strip() or 'local'
+        env_section = f'api_envi:{env}'
+        if self.conf.has_section(env_section):
+            # 先查环境专属段；该段没写这个 option 时回落基线段
+            value = self.get_section_for_data(env_section, option)
+            if value != '':
+                return value
+            return self.get_section_for_data('api_envi', option)
+        if env != 'local':
+            # 指定了环境但 config.ini 里没有对应段：明确告知当前回落到了基线，
+            # 避免误以为跑在目标环境上
+            logs.info(f'config.ini 中不存在 [{env_section}] 段，回落到 [api_envi] 默认环境')
+        return self.get_section_for_data('api_envi', option)

@@ -135,8 +135,8 @@ class RequestBase(object):
         try:
             # 支持的请求参数类型
             params_type = ['data', 'json', 'params']
-            # 从配置文件读取接口 host
-            url_host = self.conf.get_section_for_data('api_envi', 'host')
+            # 从配置文件读取当前环境的接口 host（多环境：TEST_ENV/--env 决定读哪个段）
+            url_host = self.conf.get_api_env('host')
             api_name = base_info['api_name']
             # 拼接完整 url = host + 路径
             url = url_host + base_info['url']

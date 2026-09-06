@@ -222,8 +222,11 @@ class DebugTalk:
                 passwd_lst.append(passwd)
             return user_lst[0], passwd_lst[0]
 
-    def get_baseurl(self, host):
+    def get_baseurl(self, host='host'):
+        """取当前环境的接口 base url（多环境感知，见 operationConfig.get_api_env）。
+
+        :param host: 兼容旧用例按位置传参的写法，默认读 'host' 配置项
+        """
         from conf.operationConfig import OperationConfig
         conf = OperationConfig()
-        url = conf.get_section_for_data('api_envi', host)
-        return url
+        return conf.get_api_env(host)

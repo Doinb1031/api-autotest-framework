@@ -14,7 +14,16 @@ import sys
 import webbrowser
 
 import pytest
-from conf.setting import REPORT_TYPE
+from conf.operationConfig import OperationConfig
+
+
+def _report_type():
+    """
+    报告类型单一真相源：config.ini [REPORT_TYPE] type，环境变量 REPORT_TYPE 可覆盖。
+
+    （原先 setting.py 与 config.ini 各存一份且互不同步，现统一为 config.ini 单一来源。）
+    """
+    return os.environ.get('REPORT_TYPE') or OperationConfig().get_report_type('type') or 'allure'
 
 
 def run_with_allure():
@@ -51,11 +60,13 @@ def run_with_tmreport():
 
 
 if __name__ == '__main__':
-    if REPORT_TYPE == 'allure':
+    report_type = _report_type()
+    if report_type == 'allure':
         exit_code = run_with_allure()
-    elif REPORT_TYPE == 'tm':
+    elif report_type == 'tm':
         exit_code = run_with_tmreport()
     else:
+        print(f'未知的报告类型 [{report_type}]，按普通 pytest 执行')
         exit_code = pytest.main(['-v', './testcase'])
     # 透传退出码给操作系统：CI 平台据此判断本次运行成败
     sys.exit(exit_code)

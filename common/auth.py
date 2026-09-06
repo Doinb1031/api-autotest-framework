@@ -53,7 +53,8 @@ class AuthState:
         with self._lock:
             api_info = get_testcase_yaml('./data/loginName.yaml')
             base_info, test_case = api_info[0][0], api_info[0][1]
-            url = self.conf.get_section_for_data('api_envi', 'host') + base_info['url']
+            # 当前环境的登录接口地址（多环境：TEST_ENV/--env 决定读哪个段）
+            url = self.conf.get_api_env('host') + base_info['url']
             params = {k: v for k, v in test_case.items() if k in ('data', 'json', 'params')}
             response = SESSION.request(method=base_info['method'], url=url,
                                        headers=base_info['header'], timeout=HTTP_TIMEOUT, **params)

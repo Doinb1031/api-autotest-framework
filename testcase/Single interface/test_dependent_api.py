@@ -18,7 +18,8 @@ from common.connection import ConnectSQLite
 from common.httpclient import SESSION, HTTP_TIMEOUT
 from conf.operationConfig import OperationConfig
 
-API_BASE = OperationConfig().get_section_for_data('api_envi', 'host')
+# 当前环境的接口 base url（多环境：pytest --env / TEST_ENV 决定读 config.ini 哪个段）
+API_BASE = OperationConfig().get_api_env('host')
 DOC_SAMPLE_GOODS_ID = '18382788819'  # 接口文档示例中的商品ID，作为造数用的已知数据
 
 

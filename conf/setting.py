@@ -12,8 +12,8 @@ STREAM_LOG_LEVEL = logging.DEBUG  # 控制台
 # excel文件的sheet页，默认读取第一个sheet页的数据，int类型，第一个sheet为0，以此类推0.....9
 SHEET_ID = 0
 
-# 生成的测试报告类型，可以生成两个风格的报告，allure或tm
-REPORT_TYPE = 'allure'
+# 报告类型不再在此定义：单一真相源是 config.ini [REPORT_TYPE]，环境变量 REPORT_TYPE 可覆盖
+# （读取逻辑见 run.py 的 _report_type()）
 
 # 是否发送钉钉消息
 dd_msg = False

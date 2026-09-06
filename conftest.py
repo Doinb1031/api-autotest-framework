@@ -33,6 +33,32 @@ MODEL = "deepseek-v3.2"  # 使用的模型名称
 analyzer = LLMAnalyzer(api_key=API_KEY, model=MODEL, base_url=BASE_URL)
 
 
+def pytest_addoption(parser):
+    """
+    注册命令行参数 --env，实现多环境切换：
+        pytest --env=test          # 跑 test 环境
+        pytest                     # 不传则读环境变量 TEST_ENV，再默认 local
+    优先级：--env 命令行参数 > TEST_ENV 环境变量 > 默认 local。
+    """
+    parser.addoption('--env', default=None,
+                     help='目标环境名，对应 config.ini 的 [api_envi:<env>] 段，默认 local')
+
+
+def pytest_configure(config):
+    """
+    把 --env 参数桥接为环境变量 TEST_ENV。
+
+    配置层（operationConfig.get_api_env）读取的是 TEST_ENV 环境变量——
+    这是因为 OperationConfig 在模块导入阶段就会被实例化，拿不到 pytest 的
+    config 对象；环境变量是 pytest 参数与配置层之间的标准桥接方式，
+    同时也让不经过 pytest 的脚本（CI、造数脚本）能用 TEST_ENV 直接切环境。
+    pytest_configure 在用例收集/导入之前执行，保证时序正确。
+    """
+    env = config.getoption('--env') or os.environ.get('TEST_ENV') or 'local'
+    os.environ['TEST_ENV'] = env
+    print(f'\n>>> 当前测试环境：{env}（config.ini 的 [api_envi:{env}] 段，未定义则回落 [api_envi]）')
+
+
 def pytest_collection_modifyitems(items):
     """给所有用例自动打上 regression 标记：全量即回归，无需在每个文件手动标记。"""
     for item in items:
