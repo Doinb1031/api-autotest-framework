@@ -132,8 +132,14 @@ class RequestBase:
                     files = {fk: open(fv, mode='rb')}
 
             # 发送请求：把所有参数传给 SendRequest 执行真正的 HTTP 请求
-            res = self.run.run_main(name=api_name, url=url, case_name=case_name, header=header, method=method,
-                                    file=files, cookies=cookie, **test_case)
+            try:
+                res = self.run.run_main(name=api_name, url=url, case_name=case_name, header=header, method=method,
+                                        file=files, cookies=cookie, **test_case)
+            finally:
+                # 请求完成后关闭上传文件句柄，避免文件描述符泄漏
+                if files:
+                    for fh in files.values():
+                        fh.close()
             status_code = res.status_code
             # 把响应信息记录到 allure 报告
             allure.attach(self.allure_attach_response(res.json()), '接口响应信息', allure.attachment_type.TEXT)

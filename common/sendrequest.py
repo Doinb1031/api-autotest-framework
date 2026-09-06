@@ -1,20 +1,16 @@
 import json
 import re
-import time
 
 import allure
 import jsonpath
 import pytest
 import requests
-import urllib3
 
-from conf import setting
 from conf.operationConfig import OperationConfig
 from common.auth import AUTH
+from common.httpclient import SESSION, HTTP_TIMEOUT
 from common.recordlog import logs
-from requests import utils
 from common.readyaml import ReadYamlData, get_testcase_yaml
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 # 敏感字段掩码规则：token / access_token_cookie 只保留前 4 位，避免明文泄入日志和测试报告
 _MASK_PATTERNS = [
@@ -53,86 +49,19 @@ class SendRequest:
         self.read = ReadYamlData()
         self.conf = OperationConfig()
 
-    def get(self, url, data, header):
-        """
-        发送 GET 请求。
-
-        :param url: 请求地址
-        :param data: 请求参数(query string 参数）
-        :param header: 请求头
-        :return: dict,包含 code/text/body/res_ms/res_second:失败返回 None
-        """
-        requests.packages.urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        try:
-            if data is None:
-                response = requests.get(url, headers=header, cookies=self.cookie, verify=False)
-            else:
-                response = requests.get(url, data, headers=header, cookies=self.cookie, verify=False)
-        except requests.RequestException as e:
-            logs.error(e)
-            return None
-        except Exception as e:
-            logs.error(e)
-            return None
-        # 计算响应时间
-        res_ms = response.elapsed.microseconds / 1000       # 毫秒
-        res_second = response.elapsed.total_seconds()       # 秒
-        response_dict = dict()
-        response_dict['code'] = response.status_code         # HTTP 状态码
-        response_dict['text'] = response.text                # 原始响应文本
-        try:
-            response_dict['body'] = response.json().get('body')  # 尝试提取 body 字段
-        except Exception:
-            response_dict['body'] = ''
-        response_dict['res_ms'] = res_ms
-        response_dict['res_second'] = res_second
-        return response_dict
-
-    def post(self, url, data, header):
-        """
-        发送 POST 请求。
-
-        :param url: 请求体参数
-        :param data: 请求体参数
-        :param header: 请求头
-        :return: dict，包含 code/text/body/res_ms/res_second；失败返回 None
-        """
-        requests.packages.urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        try:
-            if data is None:
-                response = requests.post(url, headers=header, cookies=self.cookie, verify=False)
-            else:
-                response = requests.post(url, data, headers=header, cookies=self.cookie, verify=False)
-        except requests.RequestException as e:
-            logs.error(e)
-            return None
-        except Exception as e:
-            logs.error(e)
-            return None
-        res_ms = response.elapsed.microseconds / 1000
-        res_second = response.elapsed.total_seconds()
-        response_dict = dict()
-        response_dict['code'] = response.status_code
-        response_dict['text'] = response.text
-        try:
-            response_dict['body'] = response.json().get('body')
-        except Exception:
-            response_dict['body'] = ''
-        response_dict['res_ms'] = res_ms
-        response_dict['res_second'] = res_second
-        return response_dict
-
     def send_request(self, **kwargs):
         """
         底层通用请求方法。发送请求并把响应中的 Set-Cookie 合并进内存登录态。
 
+        使用 common/httpclient.py 的进程级共享 SESSION（连接池复用 + 失败重试），
+        不再逐请求新建 Session。
+
         :param kwargs: 透传给 session.request() 的所有参数（method, url, headers, data 等）
         :return: Response 对象；失败时调用 pytest.fail 中断测试
         """
-        session = requests.session()
         result = None
         try:
-            result = session.request(**kwargs)
+            result = SESSION.request(**kwargs)
             # 响应中的 Set-Cookie 合并进内存登录态，供后续请求自动携带（不再落盘）
             set_cookie = requests.utils.dict_from_cookiejar(result.cookies)
             if set_cookie:
@@ -186,8 +115,6 @@ class SendRequest:
                 logs.info("请求参数：%s" % mask_sensitive(str(kwargs)))
         except Exception as e:
             logs.error(e)
-        # 禁用警告，避免在测试报告中显示警告信息
-        requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
         # 第一层：请求前检查内存登录态是否即将过期，过期则自动重新登录
         AUTH.refresh_if_needed()
         # 从内存登录态注入 token 到请求头、合并 Cookie
@@ -197,8 +124,7 @@ class SendRequest:
                                      headers=header,
                                      cookies=cookies,
                                      files=file,
-                                     timeout=setting.API_TIMEOUT,
-                                     verify=False,
+                                     timeout=HTTP_TIMEOUT,
                                      **kwargs)
         # 第二层：请求后检测 token 是否已失效，失效则自动重新登录并重试一次
         # （最多重试 1 次，避免刷新失败后一直循环；refreshing 期间不做检测，防止递归）
@@ -221,7 +147,6 @@ class SendRequest:
                                          headers=header,
                                          cookies=cookies,
                                          files=file,
-                                         timeout=setting.API_TIMEOUT,
-                                         verify=False,
+                                         timeout=HTTP_TIMEOUT,
                                          **kwargs)
         return response

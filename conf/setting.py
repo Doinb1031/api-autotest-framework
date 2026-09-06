@@ -9,9 +9,6 @@ sys.path.append(DIR_BASE)
 LOG_LEVEL = logging.DEBUG  # 文件
 STREAM_LOG_LEVEL = logging.DEBUG  # 控制台
 
-# 接口超时时间，单位/s
-API_TIMEOUT = 60
-
 # excel文件的sheet页，默认读取第一个sheet页的数据，int类型，第一个sheet为0，以此类推0.....9
 SHEET_ID = 0
 

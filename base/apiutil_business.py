@@ -177,13 +177,19 @@ class RequestBase(object):
                         files = {fk: open(fv, 'rb')}
 
                 # ----- 3. 发送 HTTP 请求 -----
-                res = self.run.run_main(name=api_name,
-                                        url=url,
-                                        case_name=case_name,
-                                        header=header,
-                                        cookies=cookie,
-                                        method=method,
-                                        file=files, **tc)
+                try:
+                    res = self.run.run_main(name=api_name,
+                                            url=url,
+                                            case_name=case_name,
+                                            header=header,
+                                            cookies=cookie,
+                                            method=method,
+                                            file=files, **tc)
+                finally:
+                    # 请求完成后关闭上传文件句柄，避免文件描述符泄漏
+                    if files:
+                        for fh in files.values():
+                            fh.close()
                 res_text = res.text
                 allure.attach(res_text, '接口响应信息', allure.attachment_type.TEXT)
                 status_code = res.status_code

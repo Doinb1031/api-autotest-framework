@@ -12,14 +12,11 @@ import time
 
 import allure
 import jsonpath
-import requests
-import urllib3
 
 from conf.operationConfig import OperationConfig
+from common.httpclient import SESSION, HTTP_TIMEOUT
 from common.recordlog import logs
 from common.readyaml import get_testcase_yaml
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class AuthState:
@@ -58,15 +55,15 @@ class AuthState:
             base_info, test_case = api_info[0][0], api_info[0][1]
             url = self.conf.get_section_for_data('api_envi', 'host') + base_info['url']
             params = {k: v for k, v in test_case.items() if k in ('data', 'json', 'params')}
-            response = requests.request(method=base_info['method'], url=url,
-                                        headers=base_info['header'], timeout=60, verify=False, **params)
+            response = SESSION.request(method=base_info['method'], url=url,
+                                       headers=base_info['header'], timeout=HTTP_TIMEOUT, **params)
             body = response.json()
             token = jsonpath.jsonpath(body, '$.token')
             if not token:
                 raise RuntimeError('登录失败：响应中未提取到 token，响应为 %s' % body)
             self.token = token[0]
             self.token_expire_time = int(time.time()) + self.token_expire_seconds
-            set_cookie = requests.utils.dict_from_cookiejar(response.cookies)
+            set_cookie = response.cookies.get_dict()
             if set_cookie:
                 self.cookies = set_cookie
             logs.info('登录成功，token 已加载到内存（有效期 %s 秒）' % self.token_expire_seconds)
