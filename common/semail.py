@@ -6,8 +6,8 @@ from email.mime.application import MIMEApplication  # 附件
 
 import re
 
-from pythonproject.common.recordlog import logs
-from pythonproject.conf.operationConfig import OperationConfig
+from common.recordlog import logs
+from conf.operationConfig import OperationConfig
 
 conf = OperationConfig()
 

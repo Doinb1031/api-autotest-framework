@@ -6,22 +6,23 @@ import time
 import pytest
 import warnings
 
-# conftest 里使用 `pythonproject.xxx` 包路径导入。项目根目录本身是一个名为
-# pythonproject 的包，包的父目录必须出现在 sys.path 里导入才能成立。
-# 本地能否导入取决于 pytest 的根目录插入等隐式行为，CI 容器里不一定成立，
-# 这里显式插入，保证任意 cwd / pytest 版本 / CI 环境下都一致。
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 本项目所有模块使用 `from base/common/conf/...` 平铺导入，前提是仓库根目录在 sys.path 里。
+# 本地跑 pytest 时该前提由多种隐式行为兜底，CI 容器（bare `pytest` 命令、checkout 目录名不同）
+# 下不成立，这里显式插入仓库根目录，保证任意 cwd / pytest 版本 / CI 环境下导入路径一致。
+# 注意：不要用本地目录名硬编码包路径（如 `from <本地文件夹名>.xxx import`）——
+# GitHub checkout 目录名与本地不同，这类导入在 CI 上必然失败。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from pythonproject.base.removefile import remove_file
-from pythonproject.common.dingRobot import send_dd_msg
-from pythonproject.common.readyaml import ReadYamlData
-from pythonproject.conf.setting import dd_msg
+from base.removefile import remove_file
+from common.dingRobot import send_dd_msg
+from common.readyaml import ReadYamlData
+from conf.setting import dd_msg
 
 yfd = ReadYamlData()
 
 import os
 import pytest
-from pythonproject.common.llm_analyzer import LLMAnalyzer
+from common.llm_analyzer import LLMAnalyzer
 
 # 从环境变量读取 API Key（建议设置环境变量 ALIYUN_API_KEY）
 API_KEY = os.getenv("ALIYUN_API_KEY")

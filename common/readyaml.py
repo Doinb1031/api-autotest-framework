@@ -3,8 +3,8 @@ import traceback
 
 from yaml.scanner import ScannerError
 
-from pythonproject.common import context
-from pythonproject.common.recordlog import logs
+from common import context
+from common.recordlog import logs
 
 
 def get_testcase_yaml(file):

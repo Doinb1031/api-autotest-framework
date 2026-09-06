@@ -5,8 +5,8 @@ import traceback
 
 import configparser
 
-from pythonproject.common.recordlog import logs
-from pythonproject.conf import setting
+from common.recordlog import logs
+from conf import setting
 
 
 class OperationConfig:

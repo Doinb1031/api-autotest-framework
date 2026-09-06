@@ -7,7 +7,7 @@ import time
 from logging.handlers import RotatingFileHandler  # 按文件大小滚动备份
 import datetime
 
-from pythonproject.conf import setting
+from conf import setting
 
 log_path = setting.FILE_PATH["LOG"]
 if not os.path.exists(log_path): os.mkdir(log_path)

@@ -11,7 +11,7 @@
 """
 import threading
 
-from pythonproject.common.recordlog import logs
+from common.recordlog import logs
 
 _lock = threading.Lock()
 _store = {}
