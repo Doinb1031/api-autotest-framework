@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
 import time
 
 import pytest
 import warnings
+
+# conftest 里使用 `pythonproject.xxx` 包路径导入。项目根目录本身是一个名为
+# pythonproject 的包，包的父目录必须出现在 sys.path 里导入才能成立。
+# 本地能否导入取决于 pytest 的根目录插入等隐式行为，CI 容器里不一定成立，
+# 这里显式插入，保证任意 cwd / pytest 版本 / CI 环境下都一致。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pythonproject.base.removefile import remove_file
 from pythonproject.common.dingRobot import send_dd_msg
