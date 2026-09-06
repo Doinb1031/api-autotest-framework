@@ -13,7 +13,6 @@ import allure
 import pytest
 
 from base.apiutil import RequestBase
-from base.apiutil_business import RequestBase as ChainRequestBase
 from base.generateId import m_id, c_id
 from common.readyaml import get_testcase_yaml
 
@@ -33,4 +32,4 @@ class TestCheckApi:
         # 每个 case_info 是一个接口文档（baseInfo + testCase 列表），
         # 接口内多条用例（如库存的充足/不足/空ID边界）由链路执行器循环执行
         allure.dynamic.title(case_info['baseInfo']['api_name'])
-        ChainRequestBase().specification_yaml(case_info)
+        RequestBase().specification_yaml_suite(case_info)
