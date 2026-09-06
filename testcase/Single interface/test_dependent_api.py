@@ -14,6 +14,7 @@ import allure
 import pytest
 
 from common.auth import AUTH
+from common.connection import ConnectSQLite
 from common.httpclient import SESSION, HTTP_TIMEOUT
 from conf.operationConfig import OperationConfig
 
@@ -105,3 +106,15 @@ class TestDependentApi:
         body = r.json()
         assert body['error'] == ''
         assert body['status'] == '0'
+
+    @allure.story('订单落库校验（依赖：系统中已有订单）')
+    def test_order_persisted_in_db(self, new_order):
+        """数据库层断言：fixture 造出的订单必须真实落库（mock 写入的 SQLite）。
+        带参数查询演示正确的防注入姿势；三层断言在此补齐数据库层。"""
+        conn = ConnectSQLite()
+        rows = conn.query_all('SELECT order_number, status, user_id FROM orders WHERE order_number = ?',
+                              (new_order,))
+        allure.attach(f'orderNumber: {new_order}\n查询结果: {rows}', '订单落库查询', allure.attachment_type.TEXT)
+        assert rows, f'订单未入库：orders 表中查不到 {new_order}'
+        assert rows[0]['status'] == '0'
+        assert rows[0]['user_id'] == '1097284939135638151'

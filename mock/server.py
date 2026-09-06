@@ -21,6 +21,7 @@
 """
 import os
 import random
+import sqlite3
 import string
 import threading
 import time
@@ -31,6 +32,52 @@ from flask import Flask, jsonify, request
 app = Flask(__name__)
 # 中文直接输出（与 exe 响应一致），避免报告中出现 \uXXXX 转义
 app.json.ensure_ascii = False
+
+# ---------- SQLite 持久化 ----------
+# 业务数据（订单/用户/购物车）落一个 SQLite 文件，供测试的 db 断言查库验证——
+# 让"三层断言"的数据库层有真实的数据可查。文件默认在 mock/ 目录（随仓库分发，
+# 不入 git），可用环境变量 MOCK_DB 覆盖。
+DB_PATH = os.environ.get('MOCK_DB', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mock.db'))
+
+
+def init_db():
+    """建库建表（幂等），进程启动时调用一次。"""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.executescript('''
+            CREATE TABLE IF NOT EXISTS orders (
+                order_number TEXT PRIMARY KEY,
+                user_id      TEXT,
+                status       TEXT,
+                goods_id     TEXT,
+                number       INTEGER,
+                created_at   TEXT
+            );
+            CREATE TABLE IF NOT EXISTS users (
+                username   TEXT PRIMARY KEY,
+                created_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS cart_items (
+                cid         INTEGER PRIMARY KEY,
+                product_id  TEXT,
+                product_name TEXT,
+                price       TEXT,
+                created_at  TEXT
+            );
+        ''')
+
+
+def db_execute(sql, params=()):
+    """执行一条写语句（INSERT/UPDATE/DELETE），自动提交。失败仅记录不中断请求。"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute(sql, params)
+            conn.commit()
+    except sqlite3.Error as e:
+        app.logger.error('SQLite 写入失败: %s, sql=%s', e, sql)
+
+
+init_db()
+
 
 # ---------- 全局状态（内存态，进程重启即重置） ----------
 
@@ -140,12 +187,17 @@ def user_add():
     if not data.get('token'):
         return jsonify({'msg': '新增失败，参数缺失或token失效', 'msg_code': 9001})
     if data.get('username') == SEED_USERNAME:
+        db_execute('INSERT OR REPLACE INTO users (username, created_at) VALUES (?, ?)',
+                   (SEED_USERNAME, _now()))
         return jsonify({'error_code': None, 'msg': '新增成功', 'msg_code': 200})
     if not _token_valid():
         return jsonify({'msg': '新增失败，参数缺失或token失效', 'msg_code': 9001})
     if not data.get('username') or not data.get('role_id'):
         return jsonify({'msg': '新增失败，参数缺失或token失效', 'msg_code': 9001})
-    # 与 exe 一致：新增的用户不进入"用户库"，后续 query/update 均不可见
+    # 与 exe 一致：新增的用户不进入"用户库"（后续 query/update 均不可见），
+    # 但落库留痕，供测试的 db 断言验证"新增动作确实发生"
+    db_execute('INSERT OR REPLACE INTO users (username, created_at) VALUES (?, ?)',
+               (data['username'], _now()))
     return jsonify({'error_code': None, 'msg': '新增成功', 'msg_code': 200})
 
 
@@ -234,6 +286,8 @@ def shopping_join_cart():
                      'totalPrice': goods['unit_price'].replace('￥', '')}
         _cart.append(cart_item)
         cart_snapshot = [dict(i) for i in _cart]
+    db_execute('INSERT OR REPLACE INTO cart_items (cid, product_id, product_name, price, created_at) VALUES (?, ?, ?, ?, ?)',
+               (cid, goods['goodsId'], goods['goods_name'], cart_item['price'], _now()))
     return jsonify({'cartList': cart_snapshot, 'createTime': _now(), 'error': '',
                     'error_code': '0000', 'message': 'success',
                     'translate_language': 'zh-CN', 'userId': '1097284939135638151'})
@@ -250,6 +304,7 @@ def del_cart():
                             'error_code': '4000', 'message': '',
                             'translate_language': 'zh-CN'})
         _cart.remove(found)
+    db_execute('DELETE FROM cart_items WHERE product_id = ?', (product_id,))
     return jsonify({'createTime': _now(), 'error': '', 'error_code': '0000',
                     'message': 'success', 'translate_language': 'zh-CN'})
 
@@ -266,6 +321,8 @@ def place_an_order():
     with _LOCK:
         # exe 实测：无论是否支付，订单状态查询固定返回 '0'
         _orders[order_number] = {'userId': user_id, 'status': '0'}
+    db_execute('INSERT OR REPLACE INTO orders (order_number, user_id, status, goods_id, number, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+               (order_number, user_id, '0', str(data.get('goods_id') or ''), number, _now()))
     # 注意 "crateTime" 拼写是 exe 的原样行为，用例契约依赖此结构
     return jsonify({'crateTime': _now(), 'error': '', 'error_code': '0000',
                     'message': '提交订单成功', 'orderNumber': order_number,

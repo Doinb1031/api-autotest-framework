@@ -120,3 +120,7 @@ class OperationConfig:
     def get_section_http(self, option):
         """读取 [HTTP] 节下的指定配置项（超时/重试/连接池/TLS 校验）。"""
         return self.get_section_for_data("HTTP", option)
+
+    def get_section_sqlite(self, option):
+        """读取 [SQLITE] 节下的指定配置项（db 断言用的 SQLite 库文件路径）。"""
+        return self.get_section_for_data("SQLITE", option)

@@ -19,6 +19,8 @@
         - contains: { 'status_code': 200 }
         - eq: { 'message': '提交订单成功' }
         - eq: {'error_code':'0000'}
+        # 数据库层断言：下单后订单必须真实落库（mock 服务写入的 SQLite），三层断言齐活
+        - db: SELECT order_number FROM orders WHERE status = '0' LIMIT 1
       extract:
         orderNumber: $.orderNumber
         userId: $.userId

@@ -1,3 +1,4 @@
+import os
 import traceback
 
 import clickhouse_sqlalchemy
@@ -9,6 +10,7 @@ import paramiko
 import pandas as pd
 from clickhouse_sqlalchemy import make_session, exceptions
 from sqlalchemy import create_engine
+from conf import setting
 from conf.operationConfig import OperationConfig
 from common.recordlog import logs
 from common.two_dimension_data import print_table
@@ -360,3 +362,57 @@ class ConnectSSH(object):
 class ConnectOracle:
     def __init__(self):
         pass
+
+
+class ConnectSQLite:
+    """
+    SQLite 连接（stdlib sqlite3，零外部依赖）。
+
+    与 ConnectMysql 的差异（后者是遗留实现，若干已知 bug 不在此处修）：
+    - query_all 返回全部行（list[dict]），而非只返回第一行；
+    - 连接即用即关（短连接），不存在"连接失败后 cursor 不存在"的连锁错误；
+    - 执行失败记录日志后抛出异常，由调用方决定语义，不静默返回 None。
+
+    数据库文件路径来自 config.ini [SQLITE] db_path，相对路径以仓库根目录
+    （setting.DIR_BASE）为基准解析，cwd 无关，本地与 CI 行为一致。
+    """
+
+    def __init__(self, db_path=None):
+        import sqlite3  # 延迟导入：仅在使用 SQLite 时加载
+
+        self.sqlite3 = sqlite3
+        path = db_path or conf.get_section_sqlite('db_path')
+        if not os.path.isabs(path):
+            path = os.path.join(setting.DIR_BASE, path)
+        self.db_path = path
+
+    def query_all(self, sql, params=()):
+        """执行查询，返回全部行（list[dict]）；结果为空返回空列表。"""
+        try:
+            with self.sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = self.sqlite3.Row
+                rows = conn.execute(sql, params).fetchall()
+                return [dict(row) for row in rows]
+        except self.sqlite3.Error as e:
+            logs.error(f'SQLite 查询失败: {e}, sql={sql}, db={self.db_path}')
+            raise
+
+    def execute(self, sql, params=()):
+        """执行写语句（INSERT/UPDATE/DELETE），自动提交。"""
+        try:
+            with self.sqlite3.connect(self.db_path) as conn:
+                conn.execute(sql, params)
+                conn.commit()
+        except self.sqlite3.Error as e:
+            logs.error(f'SQLite 写入失败: {e}, sql={sql}')
+            raise
+
+    def execute_script(self, script):
+        """执行多语句 DDL/清理脚本（幂等建表、测试数据清理用）。"""
+        try:
+            with self.sqlite3.connect(self.db_path) as conn:
+                conn.executescript(script)
+                conn.commit()
+        except self.sqlite3.Error as e:
+            logs.error(f'SQLite 脚本执行失败: {e}')
+            raise

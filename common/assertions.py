@@ -18,7 +18,7 @@ import jsonpath
 import operator
 
 from common.recordlog import logs
-from common.connection import ConnectMysql
+from common.connection import ConnectSQLite
 
 # 支持的断言类型，用于给写错类型的用例明确报错
 SUPPORTED_ASSERT_KEYS = ('contains', 'eq', 'ne', 'rv', 'db', 'exists')
@@ -189,17 +189,17 @@ class Assertions:
             return True
         raise AssertionError('接口响应时间[%ss]大于预期时间[%ss]' % (res_time, exp_time))
 
-    def assert_mysql_data(self, expected_results):
+    def assert_db_data(self, expected_results):
         """
-        数据库断言：执行 SQL 查询，验证数据库中能查到数据。
+        数据库断言：对 mock 服务的 SQLite 落库执行 SQL 查询，验证数据确实入库。
 
-        :param expected_results: 预期结果，这里传入的是 SQL 查询语句字符串
+        :param expected_results: 预期结果，SQL 查询语句字符串（查询有结果即通过）
         :return: 失败详情列表，空列表表示通过
         """
-        conn = ConnectMysql()
+        conn = ConnectSQLite()
         db_value = conn.query_all(expected_results)
         if db_value:
-            logs.info("数据库断言成功")
+            logs.info(f"数据库断言成功：查询到 {len(db_value)} 行")
             return []
         return [self._fail("db断言失败：数据库中未查到数据", expected_results, '查询结果为空')]
 
@@ -227,7 +227,8 @@ class Assertions:
                     elif key == 'rv':
                         failures += self.assert_response_any(response, value)
                     elif key == 'db':
-                        failures += self.assert_mysql_data(value)
+                        # 数据库断言（对 mock 落库的 SQLite 查询）
+                        failures += self.assert_db_data(value)
                     elif key == 'exists':
                         failures += self.exists_assert(value, response)
                     else:
