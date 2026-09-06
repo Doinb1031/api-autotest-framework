@@ -7,7 +7,8 @@
   testCase:
     - case_name: 正常新增用户
       data:
-        username: testadduser
+        # 用户名加时间戳保证幂等：本用例可重复执行，不依赖也不污染其他用例的数据
+        username: testuser_${timestamp()}
         password: tset6789890
         role_id: 123456789
         dates: '2023-12-31'

@@ -6,6 +6,9 @@
       Content-Type: application/x-www-form-urlencoded;charset=UTF-8
   testCase:
     - case_name: 正常修改用户信息
+      # testadduser 是 mock 服务的种子用户（无状态 mock 只识别预置用户，不认运行期新增的用户，
+      # 且新增接口不返回 user_id）。这是环境种子数据依赖，不是用例间依赖；
+      # 指向真实服务时应改为 fixture 造数注入被修改的用户。
       data:
         username: testadduser
         password: tset6789#$123

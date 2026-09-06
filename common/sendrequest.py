@@ -204,7 +204,16 @@ class SendRequest:
         # （最多重试 1 次，避免刷新失败后一直循环；refreshing 期间不做检测，防止递归）
         if not AUTH.refreshing and AUTH.is_invalid_response(response):
             logs.info('接口返回 token 失效，自动刷新 token 并重试该请求')
+            old_token = AUTH.token
             AUTH.refresh_and_retry_token()
+            # 请求参数体里若带有刷新前的旧 token（如 YAML 里 ${get_auth_token()} 替换后的值），
+            # 必须同步换成新 token 再重试，否则服务端校验参数体 token 仍然失败。
+            # 只替换"与旧 token 相等"的值，不影响缺 token/空 token 的负向用例语义。
+            if old_token and AUTH.token and AUTH.token != old_token:
+                for payload_key in ('data', 'json', 'params'):
+                    payload = kwargs.get(payload_key)
+                    if isinstance(payload, dict) and payload.get('token') == old_token:
+                        payload['token'] = AUTH.token
             header = {k: v for k, v in header.items() if k != 'token'}
             header, cookies = AUTH.apply_auth(header, cookies)
             response = self.send_request(method=method,

@@ -6,6 +6,8 @@
       Content-Type: application/x-www-form-urlencoded;charset=UTF-8
   testCase:
     - case_name: 有效删除用户
+      # 种子用户ID：mock 无状态，对该 ID 的删除可重复执行，属于环境种子数据依赖
+      # 而非用例间依赖；指向真实服务时应改为 fixture 造数（先新增再删除，删除即被测行为）。
       data:
         user_id: 123839387391912
       validation:
