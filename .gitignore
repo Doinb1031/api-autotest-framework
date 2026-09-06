@@ -14,3 +14,4 @@ __pycache__/
 logs/
 report/
 extract.yaml
+mock/mock.log
