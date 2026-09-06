@@ -1,0 +1,39 @@
+# 接口自动化测试流水线：拉代码 → 装依赖 → 起内置 mock → 跑全量回归
+# 前提：mock 已收编进仓库（mock/server.py），环境自包含，无需任何外部服务。
+name: api-tests
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: {}
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 启动 mock 服务
+        run: |
+          python mock/server.py &
+          for i in $(seq 1 15); do
+            curl -s -o /dev/null http://127.0.0.1:8787/dar/user/login && break
+            sleep 1
+          done
+
+      - name: 执行全量回归
+        run: pytest -m regression --junitxml=report/results.xml
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: report/results.xml

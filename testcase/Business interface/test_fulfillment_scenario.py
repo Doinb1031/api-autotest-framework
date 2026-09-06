@@ -12,6 +12,9 @@ from common.readyaml import get_testcase_yaml
 from base.apiutil import RequestBase
 from base.generateId import m_id, c_id
 
+# 核心业务链路冒烟集成员
+pytestmark = [pytest.mark.smoke]
+
 
 @allure.feature(next(m_id) + '电子商务管理系统（履约查询流程）')
 class TestFulfillmentScenario:

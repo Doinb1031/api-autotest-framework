@@ -23,6 +23,13 @@ MODEL = "deepseek-v3.2"  # 使用的模型名称
 # 初始化 LLM 分析器
 analyzer = LLMAnalyzer(api_key=API_KEY, model=MODEL, base_url=BASE_URL)
 
+
+def pytest_collection_modifyitems(items):
+    """给所有用例自动打上 regression 标记：全量即回归，无需在每个文件手动标记。"""
+    for item in items:
+        item.add_marker(pytest.mark.regression)
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield

@@ -5,6 +5,9 @@ from common.readyaml import get_testcase_yaml
 from base.apiutil import RequestBase
 from base.generateId import m_id, c_id
 
+# 核心业务链路冒烟集成员
+pytestmark = [pytest.mark.smoke]
+
 
 # 业务场景链路用例调用 base/apiutil.py 的多用例入口 specification_yaml_suite
 

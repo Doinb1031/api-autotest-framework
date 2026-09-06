@@ -7,6 +7,9 @@ from base.generateId import m_id, c_id
 from base.apiutil import RequestBase
 from common.readyaml import get_testcase_yaml
 
+# 核心业务链路（商品→下单→支付），冒烟集成员
+pytestmark = [pytest.mark.smoke]
+
 
 @allure.feature(next(m_id) + '商品管理（单接口）')
 class TestLogin:
