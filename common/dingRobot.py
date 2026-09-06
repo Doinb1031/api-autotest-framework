@@ -1,3 +1,4 @@
+import os
 import urllib.parse
 import requests
 import time
@@ -35,7 +36,13 @@ def send_dd_msg(content_str, at_all=True):
     """
     timestamp_and_sign = generate_sign()
     # url(钉钉机器人Webhook地址) + timestamp + sign
-    url = f'https://oapi.dingtalk.com/robot/send?access_token=75d6628cefedc8225695dcde2577f03336f0099cd16d93988a68ad243cf9dd6f&timestamp={timestamp_and_sign[0]}&sign={timestamp_and_sign[1]}'
+    # url(钉钉机器人Webhook地址) + timestamp + sign
+    # access_token 属于机器人凭据，不入库：从环境变量读取，未设置时跳过发送
+    access_token = os.getenv('DINGTALK_ACCESS_TOKEN', '')
+    if not access_token:
+        print('未设置 DINGTALK_ACCESS_TOKEN，跳过钉钉通知')
+        return
+    url = f'https://oapi.dingtalk.com/robot/send?access_token={access_token}&timestamp={timestamp_and_sign[0]}&sign={timestamp_and_sign[1]}'
     headers = {'Content-Type': 'application/json;charset=utf-8'}
     data = {
         "msgtype": "text",

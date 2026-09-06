@@ -36,5 +36,4 @@ LOGIN_HEADER = {
     'Accept': 'application/json, text/plain, */*',
     'Accept-Language': 'zh-CN,zh;q=0.9',
     'Connection': 'keep-alive'
-    # 'Authorization':'sk-147afe9fe54742b79b2936816a882bab'
 }
