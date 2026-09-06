@@ -5,6 +5,9 @@ name: api-tests
 on:
   push:
     branches: [main, master]
+  # 每日北京时间 02:00（UTC 18:00）定时全量回归
+  schedule:
+    - cron: '0 18 * * *'
   workflow_dispatch: {}
 
 jobs:
