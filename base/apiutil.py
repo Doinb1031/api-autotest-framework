@@ -18,6 +18,7 @@ import allure
 import jsonpath
 
 from common.sendrequest import SendRequest
+from common.auth import AUTH
 from common.readyaml import ReadYamlData
 from common.recordlog import logs
 from conf.operationConfig import OperationConfig
@@ -132,6 +133,10 @@ class RequestBase(object):
         # 浅拷贝，避免 pop('case_name') 等操作污染调用方持有的原始数据
         # （parametrize 的参数对象在收集阶段就被创建，重复执行同一条用例时必须不受污染）
         test_case = dict(test_case)
+        # 请求前刷新必须先于 ${} 占位符替换：若 header/data 里写了 ${get_auth_token()}，
+        # 刷新发生在替换之后就会让占位符解析到旧 token（刷新后服务端已作废它），
+        # 导致请求先失败再靠重试兜底；先刷新能保证占位符永远解析到最新 token。
+        AUTH.refresh_if_needed()
         try:
             # 支持的请求参数类型
             params_type = ['data', 'json', 'params']

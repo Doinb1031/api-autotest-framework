@@ -40,6 +40,15 @@ class AuthState:
         self.invalid_error_codes = {c.strip() for c in (e_codes or '401,403').split(',') if c.strip()}
         keywords = self.conf.get_section_for_data('TOKEN', 'invalid_keywords')
         self.invalid_keywords = [k.strip() for k in (keywords or '').split(',') if k.strip()]
+        # 配置守护：提前量不小于有效期时，每个请求前都会触发刷新（"每请求先登录一次"的
+        # 退化行为），这里钳制为 expire/3 并告警，不让病态配置静默生效
+        if self.refresh_advance_seconds >= self.token_expire_seconds:
+            logs.warning('配置异常：[TOKEN] refresh_advance_seconds(%s) 不小于 '
+                         'expire_seconds(%s)，会导致每个请求都触发刷新，'
+                         '已钳制为 expire/3（%s）'
+                         % (self.refresh_advance_seconds, self.token_expire_seconds,
+                            max(self.token_expire_seconds // 3, 1)))
+            self.refresh_advance_seconds = max(self.token_expire_seconds // 3, 1)
 
     def login(self):
         """
@@ -63,12 +72,37 @@ class AuthState:
             if not token:
                 raise RuntimeError('登录失败：响应中未提取到 token，响应为 %s' % body)
             self.token = token[0]
-            self.token_expire_time = int(time.time()) + self.token_expire_seconds
+            self.token_expire_time = self._resolve_expire_time(body)
             set_cookie = response.cookies.get_dict()
             if set_cookie:
                 self.cookies = set_cookie
-            logs.info('登录成功，token 已加载到内存（有效期 %s 秒）' % self.token_expire_seconds)
+            logs.info('登录成功，token 已加载到内存（有效期 %s 秒）'
+                      % max(int(self.token_expire_time - time.time()), 0))
             return body
+
+    def _resolve_expire_time(self, body):
+        """
+        解析服务器返回的 token 到期时刻（epoch 秒）：服务器给了 expires_in/expire_time
+        （签发后 N 秒）或 exp（绝对时间戳）就用服务器的事实，取不到或数值非法时
+        回退 [TOKEN] expire_seconds 配置估算。
+
+        :param body: 登录响应 dict
+        :return: token 到期时刻（epoch 秒）
+        """
+        for expr in ('$.expires_in', '$.expire_time', '$.exp'):
+            matched = jsonpath.jsonpath(body, expr)
+            if matched:
+                try:
+                    value = int(matched[0])
+                except (TypeError, ValueError):
+                    continue
+                if value <= 0:
+                    continue
+                # 值大于 40 亿视为绝对时间戳（JWT exp 风格），否则为"签发后 N 秒过期"
+                if value > 4_000_000_000:
+                    return value
+                return int(time.time()) + value
+        return int(time.time()) + self.token_expire_seconds
 
     def refresh_if_needed(self):
         """请求前检查：token 即将过期（不足 refresh_advance_seconds）时自动重新登录。"""

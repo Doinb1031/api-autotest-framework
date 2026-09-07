@@ -17,6 +17,11 @@
 7. checkLogisticsStatus 对存在的订单返回 status '1'（与文档 0=待发货 语义不符，
    沿用 exe 实测行为，差异已记录在 FulfillmentScenario.yml 注释中）。
 
+8. token 有效期：签发后 MOCK_EXPIRES_IN 秒过期（默认 3600）。登录成功响应新增
+   expires_in 字段——这是对 exe 契约的有意扩展（exe 无此字段），支撑 token
+   过期/自动刷新测试；有效期可用 MOCK_EXPIRES_IN 环境变量或测试控制端点
+   POST /__mock/expires_in 运行时调整（后者仅测试用，非发货契约）。
+
 启动：python mock/server.py（默认 127.0.0.1:8787，可用 MOCK_HOST/MOCK_PORT 环境变量覆盖）
 """
 import os
@@ -38,6 +43,21 @@ app.json.ensure_ascii = False
 # 让"三层断言"的数据库层有真实的数据可查。文件默认在 mock/ 目录（随仓库分发，
 # 不入 git），可用环境变量 MOCK_DB 覆盖。
 DB_PATH = os.environ.get('MOCK_DB', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mock.db'))
+
+
+def _int_env(name, default):
+    """读取整型环境变量，缺失或非法时回退默认值（与 MOCK_HOST/MOCK_PORT 风格一致）。"""
+    raw = os.environ.get(name, '')
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+# token 有效期（秒）：签发后 N 秒过期。默认 3600，可用 MOCK_EXPIRES_IN 环境变量
+# 或测试控制端点 POST /__mock/expires_in 运行时调整（后者仅测试用，见该端点注释）
+EXPIRES_IN = _int_env('MOCK_EXPIRES_IN', 3600)
 
 
 def init_db():
@@ -83,8 +103,9 @@ init_db()
 
 _LOCK = threading.Lock()
 
-# 登录态：exe 的语义是"同一时刻只有一个有效 token"，任何 login 调用都会使其失效
-_state = {'token': None}
+# 登录态：exe 的语义是"同一时刻只有一个有效 token"，任何 login 调用都会使其失效；
+# issued_at 记录签发时刻，配合 EXPIRES_IN 模拟"签发后 N 秒过期"
+_state = {'token': None, 'issued_at': None}
 
 # 种子数据：与 exe 一致的预置用户与商品
 SEED_USER_ID = '123839387391912'
@@ -151,10 +172,35 @@ def _request_token():
 
 
 def _token_valid():
-    """校验请求携带的 token 是否为当前有效 token。"""
+    """校验请求携带的 token 是否为当前有效 token：等值且未过期（签发后 EXPIRES_IN 秒内）。"""
     token = _request_token()
     with _LOCK:
-        return bool(token) and token == _state['token']
+        if not token or token != _state['token'] or _state['issued_at'] is None:
+            return False
+        return time.time() - _state['issued_at'] <= EXPIRES_IN
+
+
+# ---------- 测试专用控制端点（非 exe 契约，仅 pytest 用例调整 mock 行为用） ----------
+
+
+@app.post('/__mock/expires_in')
+def mock_set_expires_in():
+    """运行时调整 token 有效期（秒）。body: {"expires_in": N}（N 为正整数）。
+
+    供 token 过期/自愈测试在不重启 mock 的前提下制造"服务端已过期"的场景；
+    测试 teardown 必须通过同一端点恢复默认值。
+    """
+    data = request.get_json(silent=True) or {}
+    try:
+        value = int(data.get('expires_in'))
+    except (TypeError, ValueError):
+        return jsonify({'ok': False, 'msg': 'expires_in 必须为正整数'})
+    if value <= 0:
+        return jsonify({'ok': False, 'msg': 'expires_in 必须为正整数'})
+    global EXPIRES_IN
+    with _LOCK:
+        EXPIRES_IN = value
+    return jsonify({'ok': True, 'expires_in': EXPIRES_IN})
 
 
 # ---------- 用户模块 /dar/user ----------
@@ -168,15 +214,17 @@ def user_login():
     # exe 语义：任何 login 调用（包括参数错误/登录失败）都会使旧 token 失效
     with _LOCK:
         _state['token'] = None
+        _state['issued_at'] = None
     if not user_name or not passwd:
         return jsonify({'msg': '参数错误', 'msg_code': -1})
     if user_name == 'test01' and passwd == 'admin123':
         token = _new_token()
         with _LOCK:
             _state['token'] = token
+            _state['issued_at'] = time.time()
         return jsonify({'error_code': None, 'msg': '登录成功', 'msg_code': 200,
                         'orgId': '4140913758110176843', 'token': token,
-                        'userId': '1097284939135638151'})
+                        'userId': '1097284939135638151', 'expires_in': EXPIRES_IN})
     return jsonify({'msg': '登录失败,用户名或密码错误', 'msg_code': 9001, 'token': None, 'userId': None})
 
 

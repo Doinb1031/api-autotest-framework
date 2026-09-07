@@ -1,5 +1,6 @@
 ### 登录成功(test01/admin123)
-HTTP 200 {"error_code": null, "msg": "登录成功", "msg_code": 200, "orgId": "4140913758110176843", "token": "eAcba9c9e3f0CcEcFfA5Dd8fBC65E", "userId": "1097284939135638151"}
+HTTP 200 {"error_code": null, "msg": "登录成功", "msg_code": 200, "orgId": "4140913758110176843", "token": "eAcba9c9e3f0CcEcFfA5Dd8fBC65E", "userId": "1097284939135638151", "expires_in": 3600}
+> 注：`expires_in`（签发后 N 秒过期）为本 mock 的有意扩展，exe 登录响应无此字段；支持 MOCK_EXPIRES_IN 环境变量与测试控制端点 POST /__mock/expires_in 调整。
 
 ### 登录-错密码
 HTTP 200 {"msg": "登录失败,用户名或密码错误", "msg_code": 9001, "token": null, "userId": null}
